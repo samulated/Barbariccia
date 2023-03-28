@@ -26,6 +26,11 @@ namespace Barbariccia
         {
             return !_blocking;
         }
+
+        public string LookAt()
+        { 
+            return _description;
+        }
     }
 
     class Lawn : Things
@@ -173,9 +178,68 @@ namespace Barbariccia
             return false;
         }
 
+        public int[] GetLocation()
+        {
+            return new int[] { _posX, _posY };
+        }
+
+
         public void Render(ConsoleWindow c, int xOffset, int yOffset)
         {
             c.Write(_posX + xOffset, _posY + yOffset, _char, _main, _back);
+        }
+    }
+
+    class UI
+    {
+        ConsoleWindow _console;
+        int _screenX;
+        int _screenY;
+
+        Color4 _frameColor;
+        Color4 _textColor;
+        Color4 _highlightColor;
+        Color4 _backgroundColor;
+
+        string _text;
+
+        public UI(int x, int y, ConsoleWindow c)
+        {
+            _console = c;
+            _screenX = x;
+            _screenY = y;
+
+            _frameColor = Color4.Gray;
+            _textColor = Color4.White;
+            _highlightColor = Color4.Magenta;
+            _backgroundColor = Color4.Black;
+
+            _text = string.Empty;
+        }
+        public void UpdateInfo(string s)
+        {
+            _text = s;
+        }
+
+        public void ClearInfo()
+        {
+            _text = string.Empty;
+        }
+
+        public void Render()
+        {
+            for(int i = 0; i < _screenX; i++)
+            {
+                
+                _console.Write(0, i, '=', _frameColor);
+                _console.Write(22, i, '=', _frameColor);
+                for (int j = 23; j < _screenY; j++)
+                {
+                    _console.Write(j, i, ' ', _textColor, _backgroundColor);
+                }
+
+                _console.Write(25, 5, _text, _textColor);
+            }
         }
     }
 
@@ -358,8 +422,13 @@ namespace Barbariccia
 
         static void Main(string[] args)
         {
-            ConsoleWindow console = new ConsoleWindow(32, 80, "BarbaricciaRL");
-            
+            int screenX = 80;
+            int screenY = 32;
+
+            ConsoleWindow console = new ConsoleWindow(screenY, screenX, "BarbaricciaRL");
+
+            UI ui = new UI(screenX, screenY, console);
+
             Things[,] world = DefaultWorld();
 
 
@@ -380,6 +449,14 @@ namespace Barbariccia
                     if (key == Key.Escape)
                         running = false;
 
+                    if (key == Key.L)
+                    {
+                        // Look around
+                        int[] loc = player.GetLocation();
+                        ui.UpdateInfo(world[loc[1], loc[0]].LookAt());
+                    }
+
+                    // Movement
                     if (key == Key.W)
                         player.MoveTo(-1, 0, world);
                     if (key == Key.A)
@@ -403,6 +480,9 @@ namespace Barbariccia
                 console.Write(4, 6, "===", Color4.LightSteelBlue);
                 console.Write(5, 6, "\\ /", Color4.LightSteelBlue);
                 console.Write(6, 6, "|^|", Color4.LightSteelBlue);
+
+                // UI
+                ui.Render();
             }
         }
     }
