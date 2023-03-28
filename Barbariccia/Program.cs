@@ -3,6 +3,9 @@ using OpenTK.Graphics;
 using OpenTK.Input;
 using OpenTK.Graphics.ES20;
 using OpenTK.Graphics.OpenGL;
+using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
+using System;
 
 namespace Barbariccia
 {
@@ -332,7 +335,7 @@ namespace Barbariccia
 
             // BEACH
             // Sand
-            for (int i = 64; i < world.GetLength(0); i++)
+            for (int i = 114; i < world.GetLength(0); i++)
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
@@ -340,7 +343,7 @@ namespace Barbariccia
                 }
             }
 
-            for (int i = 62; i < 64; i++)
+            for (int i = 112; i < 114; i++)
             {
                 for (int j = 1; j < world.GetLength(1); j++)
                 {
@@ -348,14 +351,14 @@ namespace Barbariccia
                 }
             }
 
-            for (int i = 61; i < 62; i++)
+            for (int i = 111; i < 112; i++)
             {
                 for (int j = 2; j < 19; j++)
                 {
                     world[i, j] = new Sand(i, j);
                 }
             }
-            for (int i = 60; i < 61; i++)
+            for (int i = 110; i < 111; i++)
             {
                 for (int j = 2; j < 18; j++)
                 {
@@ -363,7 +366,7 @@ namespace Barbariccia
                 }
             }
 
-            for (int i = 59; i < 60; i++)
+            for (int i = 109; i < 110; i++)
             {
                 for (int j = 3; j < 17; j++)
                 {
@@ -372,7 +375,7 @@ namespace Barbariccia
             }
 
             // Water
-            for (int i = 70; i < world.GetLength(0); i++)
+            for (int i = 120; i < world.GetLength(0); i++)
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
@@ -439,8 +442,44 @@ namespace Barbariccia
             return world;
         }
 
+        static string DayOfTheWeek(int day)
+        {
+            switch (day % 7)
+            {
+                case 0:
+                    return "Sunday";
+                    break;
+                case 1:
+                    return "Monday";
+                    break;
+                case 2:
+                    return "Tuesday";
+                    break;
+                case 3:
+                    return "Wednesday";
+                    break;
+                case 4:
+                    return "Thursday";
+                    break;
+                case 5:
+                    return "Friday";
+                    break;
+                case 6:
+                    return "Saturday";
+                    break;
+                default:
+                    break;
+            }
+            return "Error";
+        }
+
         static void Main(string[] args)
         {
+            Stopwatch timer = new Stopwatch();
+
+            int timeOffset = 540;
+            int dayOffset = 0;
+
             int screenX = 80;
             int screenY = 32;
 
@@ -457,9 +496,29 @@ namespace Barbariccia
             Player player = new Player(10, 10);
 
             bool running = true;
+            timer.Start();
+
+            int ingameTime = timeOffset;
+            int ingameDays = dayOffset;
+            bool newDay = true;
+            string dayOfTheWeek = DayOfTheWeek(ingameDays);
 
             while (!console.KeyPressed && console.WindowUpdate() && running)
             {
+                // Process in-game time/date
+                ingameTime = (int)(timer.Elapsed.TotalSeconds + timeOffset) % 1140;
+                
+                if(ingameTime == 1139 && newDay)
+                {
+                    ingameDays = ingameDays + 1;
+                    newDay = false;
+                    dayOfTheWeek = DayOfTheWeek(ingameDays);
+                }
+                else if(ingameTime == 0 && !newDay)
+                {
+                    newDay = true;
+                }
+
                 // Get Input
                 if (console.KeyPressed)
                 {
@@ -514,6 +573,27 @@ namespace Barbariccia
 
                 // UI
                 ui.Render();
+                console.Write(screenY - 8, 63, timer.Elapsed.ToString(), Color4.Yellow);
+                
+                console.Write(screenY - 7, 63, ingameTime.ToString(), Color4.Yellow);
+
+                console.Write(screenY - 5, 63, dayOfTheWeek + " (" + ingameDays + ")", Color4.Yellow);
+
+                // Format In-Game Time
+                string timeDisplay = string.Empty;
+                timeDisplay = (ingameTime / 60).ToString(@"00") + ":" + (ingameTime % 60).ToString(@"00");
+                if (ingameTime > 720)
+                    timeDisplay += " PM";
+                else
+                    timeDisplay += " AM";
+
+                console.Write(screenY - 3, 63, timeDisplay.ToString(), Color4.Yellow);
+
+
+                int dayDate = ingameDays % 28 + 1;
+                int monthDate = ingameDays / 28 + 1;
+                string dateDisplay = dayDate.ToString(@"00") + " / " + monthDate.ToString(@"00");
+                console.Write(screenY - 2, 63, dateDisplay.ToString(), Color4.Yellow);
             }
         }
     }
