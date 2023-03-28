@@ -19,7 +19,7 @@ namespace Barbariccia
 
         public void Render(ConsoleWindow c, int xOffset, int yOffset)
         {
-            c.Write(_posX + xOffset, _posY + yOffset, _char, _mainCol, _backCol);
+            c.Write(_posY + xOffset, _posX + yOffset, _char, _mainCol, _backCol);
         }
 
         public bool CanMove()
@@ -124,6 +124,21 @@ namespace Barbariccia
             _blocking = true;
         }
     }
+
+    class AncientWall : Things
+    {
+        public AncientWall(int x, int y)
+        {
+            _char = '#';
+            _mainCol = Color4.Black;
+            _backCol = Color4.DarkGray;
+            _posX = x;
+            _posY = y;
+            _description = "Something tells you that there isn't much to see\nbeyond this ancient wall...";
+            _blocking = true;
+        }
+    }
+
     class Door : Things
     {
         public Door(int x, int y)
@@ -247,51 +262,55 @@ namespace Barbariccia
     {
         static Things[,] DefaultWorld()
         {
-            Things[,] world = new Things[74, 28];
+            int worldX = 128;
+            int worldY = 128;
+            int worldZ = 128; // currently unused
+
+            Things[,] world = new Things[worldX, worldY];
             // console.Write(12, 28, "Hello World!", Color4.Lime);
 
             // Lawn
-            for (int i = 0; i < 74; i++)
+            for (int i = 0; i < worldX; i++)
             {
-                for (int j = 0; j < 28; j++)
+                for (int j = 0; j < worldY; j++)
                 {
-                    world[i, j] = new Lawn(j, i);
+                    world[i, j] = new Lawn(i, j);
                 }
             }
 
             // Hedges
             for (int j = 3; j <= 21; j++)
             {
-                world[24, j] = new Hedge(j, 24);
-                world[34, j] = new Hedge(j, 34);
+                world[24, j] = new Hedge(24, j);
+                world[34, j] = new Hedge(34, j);
             }
             for (int i = 25; i < 34; i++)
             {
-                world[i, 3] = new Hedge(3, i);
+                world[i, 3] = new Hedge(i, 3);
             }
             for (int i = 25; i < 27; i++)
             {
-                world[i, 21] = new Hedge(21, i);
+                world[i, 21] = new Hedge(i, 21);
             }
             for (int i = 28; i <= 31; i++)
             {
-                world[i, 21] = new Hedge(21, i);
+                world[i, 21] = new Hedge(i, 21);
             }
-            world[33, 21] = new Hedge(21, 33);
+            world[33, 21] = new Hedge(33, 21);
 
             // Dirt Patch
             for (int j = 21; j < 24; j++)
             {
-                world[27, j] = new Dirt(j, 27);
-                world[32, j] = new Dirt(j, 32);
+                world[27, j] = new Dirt(27, j);
+                world[32, j] = new Dirt(32, j);
             }
             for (int j = 15; j < 21; j++)
             {
-                world[30, j] = new Dirt(j, 30);
+                world[30, j] = new Dirt(30, j);
             }
             for (int i = 31; i < 34; i++)
             {
-                world[i, 15] = new Dirt(15, i);
+                world[i, 15] = new Dirt(i, 15);
             }
 
             //      Roads
@@ -299,7 +318,7 @@ namespace Barbariccia
             {
                 for (int j = 24; j < 27; j++)
                 {
-                    world[i, j] = new Dirt(j, i);
+                    world[i, j] = new Dirt(i, j);
                 }
             }
 
@@ -307,7 +326,7 @@ namespace Barbariccia
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
-                    world[i, j] = new Dirt(j, i);
+                    world[i, j] = new Dirt(i, j);
                 }
             }
 
@@ -317,7 +336,7 @@ namespace Barbariccia
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
-                    world[i, j] = new Sand(j, i);
+                    world[i, j] = new Sand(i, j);
                 }
             }
 
@@ -325,7 +344,7 @@ namespace Barbariccia
             {
                 for (int j = 1; j < world.GetLength(1); j++)
                 {
-                    world[i, j] = new Sand(j, i);
+                    world[i, j] = new Sand(i, j);
                 }
             }
 
@@ -333,14 +352,14 @@ namespace Barbariccia
             {
                 for (int j = 2; j < 19; j++)
                 {
-                    world[i, j] = new Sand(j, i);
+                    world[i, j] = new Sand(i, j);
                 }
             }
             for (int i = 60; i < 61; i++)
             {
                 for (int j = 2; j < 18; j++)
                 {
-                    world[i, j] = new Sand(j, i);
+                    world[i, j] = new Sand(i, j);
                 }
             }
 
@@ -348,7 +367,7 @@ namespace Barbariccia
             {
                 for (int j = 3; j < 17; j++)
                 {
-                    world[i, j] = new Sand(j, i);
+                    world[i, j] = new Sand(i, j);
                 }
             }
 
@@ -357,7 +376,7 @@ namespace Barbariccia
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
-                    world[i, j] = new PondWater(j, i);
+                    world[i, j] = new PondWater(i, j);
                 }
             }
 
@@ -368,54 +387,54 @@ namespace Barbariccia
             {
                 for (int j = 10; j < 15; j++)
                 {
-                    world[i, j] = new Floor(j, i);
+                    world[i, j] = new Floor(i, j);
                 }
             }
             for (int i = 25; i < 30; i++)
             {
                 for (int j = 15; j < 20; j++)
                 {
-                    world[i, j] = new Floor(j, i);
+                    world[i, j] = new Floor(i, j);
                 }
             }
             //  Walls
             //      Horizontals
             for (int i = 25; i < 34; i++)
             {
-                world[i, 10] = new Wall(10, i);
+                world[i, 10] = new Wall(i, 10);
             }
             for (int i = 25; i < 30; i++)
             {
-                world[i, 20] = new Wall(20, i);
+                world[i, 20] = new Wall(i, 20);
             }
             for (int i = 30; i < 34; i++)
             {
-                world[i, 14] = new Wall(14, i);
+                world[i, 14] = new Wall(i, 14);
             }
             //      Verticals
             for (int j = 10; j < 20; j++)
             {
-                world[25, j] = new Wall(j, 25);
+                world[25, j] = new Wall(25, j);
             }
             for (int j = 10; j < 15; j++)
             {
-                world[30, j] = new Wall(j, 30);
-                world[33, j] = new Wall(j, 33);
+                world[30, j] = new Wall(30, j);
+                world[33, j] = new Wall(33, j);
             }
             for (int j = 14; j < 20; j++)
             {
-                world[29, j] = new Wall(j, 29);
+                world[29, j] = new Wall(29, j);
             }
             // Doors
-            world[28, 10] = new Door(10, 28);   // North Door
-            world[27, 20] = new Door(20, 27);   // South Door
-            world[30, 12] = new Door(12, 30);   // Interior Door
+            world[28, 10] = new Door(28, 10);   // North Door
+            world[27, 20] = new Door(27, 20);   // South Door
+            world[30, 12] = new Door(30, 12);   // Interior Door
             // HOUSE END
 
             // Silo hack
-            world[3, 4] = new Hedge(4, 3);
+            world[3, 4] = new Hedge(3, 4);
             world[4, 4] = new Hedge(4, 4);
-            world[5, 4] = new Hedge(4, 5);
+            world[5, 4] = new Hedge(5, 4);
 
             return world;
         }
@@ -467,9 +486,21 @@ namespace Barbariccia
                         player.MoveTo(0, 1, world);
                 }
 
+                worldOffsetX = player.GetLocation()[0] * -1 + (screenY / 2 - 5);
+                worldOffsetY = player.GetLocation()[1] * -1 + (screenX / 2);
+
                 //  Render Stuff
+                // Clear
+                for (int i = 0; i < screenX; i++)
+                {
+                    for (int j = 0; j < screenY; j++)
+                    {
+                        console.Write(j, i, ' ', Color4.Magenta, Color4.Black);
+                    }
+                }
+
                 //      World
-                foreach(Things t in world)
+                foreach (Things t in world)
                 {
                     t.Render(console, worldOffsetX, worldOffsetY);
                 }
@@ -477,9 +508,9 @@ namespace Barbariccia
                 player.Render(console, worldOffsetX, worldOffsetY);
 
                 // hacky 'walk under' layer (Silo)
-                console.Write(4, 6, "===", Color4.LightSteelBlue);
-                console.Write(5, 6, "\\ /", Color4.LightSteelBlue);
-                console.Write(6, 6, "|^|", Color4.LightSteelBlue);
+                console.Write(2 + worldOffsetX, 3 + worldOffsetY, "===", Color4.LightSteelBlue);
+                console.Write(3 + worldOffsetX, 3 + worldOffsetY, "\\ /", Color4.LightSteelBlue);
+                console.Write(4 + worldOffsetX, 3 + worldOffsetY, "|^|", Color4.LightSteelBlue);
 
                 // UI
                 ui.Render();
