@@ -10,6 +10,9 @@ using System;
 namespace Barbariccia
 {
     // THINGS SECTION
+    enum Direction
+    { Left, Right, Up, Down };
+
     class Things
     {
         protected char _char;
@@ -75,16 +78,29 @@ namespace Barbariccia
             _blocking = true;
         }
     }
-    class Dirt : Things
+    class DirtRoad : Things
     {
-        public Dirt(int x, int y)
+        public DirtRoad(int x, int y)
+        {
+            _char = '.';
+            _mainCol = Color4.Khaki;
+            _backCol = Color4.Black;
+            _posX = x;
+            _posY = y;
+            _description = "The earth has been packed down from\nyears of use.";
+            _blocking = false;
+        }
+    }
+    class TilledDirt : Things
+    {
+        public TilledDirt(int x, int y)
         {
             _char = '.';
             _mainCol = Color4.SaddleBrown;
             _backCol = Color4.Black;
             _posX = x;
             _posY = y;
-            _description = "An exposed patch of loamy earth.";
+            _description = "A patch of ground that has recently been tilled.";
             _blocking = false;
         }
     }
@@ -161,6 +177,7 @@ namespace Barbariccia
     {
         // Player Data
         string _name;
+        Direction _direction;
 
         // World Appearance Data
         int _posX;
@@ -179,10 +196,21 @@ namespace Barbariccia
             _main = Color4.White;
             _back = Color4.Black;
             _char = '@';
+
+            _direction = Direction.Down;
         }
 
         public bool MoveTo(int x, int y, Things[,] t)
         {
+            if (x < 0)
+                _direction = Direction.Up;
+            else if (x > 0)
+                _direction = Direction.Down;
+            else if (y < 0)
+                _direction = Direction.Left;
+            else if (y > 0)
+                _direction = Direction.Right;
+
             if (_posX + x < 0 || _posX + x >= t.GetLength(1)
             ||  _posY + y < 0 || _posY + y >= t.GetLength(0))
                 return false;
@@ -201,6 +229,42 @@ namespace Barbariccia
             return new int[] { _posX, _posY };
         }
 
+        public Direction GetDirection()
+        {
+            return _direction;
+        }
+
+        public string LookAt(Things[,] t)
+        {
+            int x = 0;
+            int y = 0;
+
+            switch (_direction)
+            {
+                case Direction.Up:
+                    x = -1;
+                    break;
+                case Direction.Down:
+                    x = 1;
+                    break;
+                case Direction.Left:
+                    y = -1;
+                    break;
+                case Direction.Right:
+                    y = 1;
+                    break;
+                default:
+                    break;
+            }
+
+            if (_posX + x < 0 || _posX + x >= t.GetLength(1)
+            || _posY + y < 0 || _posY + y >= t.GetLength(0))
+            {
+                return "That doesn't look like much of anything..";
+            }
+
+            return t[_posY + y, _posX + x].LookAt();
+        }
 
         public void Render(ConsoleWindow c, int xOffset, int yOffset)
         {
@@ -244,7 +308,7 @@ namespace Barbariccia
             _text = string.Empty;
         }
 
-        public void Render()
+        public void Render(Player p)
         {
             for(int i = 0; i < _screenX; i++)
             {
@@ -257,6 +321,11 @@ namespace Barbariccia
                 }
 
                 _console.Write(25, 5, _text, _textColor);
+
+                _console.Write(28, 2, "O", p.GetDirection() == Direction.Up     ? Color4.Cyan  : Color4.White);
+                _console.Write(29, 1, "O", p.GetDirection() == Direction.Left   ? Color4.Cyan  : Color4.White);
+                _console.Write(29, 3, "O", p.GetDirection() == Direction.Right  ? Color4.Cyan  : Color4.White);
+                _console.Write(30, 2, "O", p.GetDirection() == Direction.Down   ? Color4.Cyan  : Color4.White);
             }
         }
     }
@@ -304,16 +373,16 @@ namespace Barbariccia
             // Dirt Patch
             for (int j = 21; j < 24; j++)
             {
-                world[27, j] = new Dirt(27, j);
-                world[32, j] = new Dirt(32, j);
+                world[27, j] = new DirtRoad(27, j);
+                world[32, j] = new DirtRoad(32, j);
             }
             for (int j = 15; j < 21; j++)
             {
-                world[30, j] = new Dirt(30, j);
+                world[30, j] = new DirtRoad(30, j);
             }
             for (int i = 31; i < 34; i++)
             {
-                world[i, 15] = new Dirt(i, 15);
+                world[i, 15] = new DirtRoad(i, 15);
             }
 
             //      Roads
@@ -321,7 +390,7 @@ namespace Barbariccia
             {
                 for (int j = 24; j < 27; j++)
                 {
-                    world[i, j] = new Dirt(i, j);
+                    world[i, j] = new DirtRoad(i, j);
                 }
             }
 
@@ -329,7 +398,7 @@ namespace Barbariccia
             {
                 for (int j = 0; j < world.GetLength(1); j++)
                 {
-                    world[i, j] = new Dirt(i, j);
+                    world[i, j] = new DirtRoad(i, j);
                 }
             }
 
@@ -434,6 +503,10 @@ namespace Barbariccia
             world[30, 12] = new Door(30, 12);   // Interior Door
             // HOUSE END
 
+            // Test Tilled Earth
+
+            world[27, 28] = new TilledDirt(27, 28);
+
             // Silo hack
             world[3, 4] = new Hedge(3, 4);
             world[4, 4] = new Hedge(4, 4);
@@ -493,7 +566,7 @@ namespace Barbariccia
             int worldOffsetX = 2;
             int worldOffsetY = 3;
 
-            Player player = new Player(10, 10);
+            Player player = new Player(30, 18);
 
             bool running = true;
             timer.Start();
@@ -529,9 +602,7 @@ namespace Barbariccia
 
                     if (key == Key.L)
                     {
-                        // Look around
-                        int[] loc = player.GetLocation();
-                        ui.UpdateInfo(world[loc[1], loc[0]].LookAt());
+                        ui.UpdateInfo(player.LookAt(world));
                     }
 
                     // Movement
@@ -572,7 +643,7 @@ namespace Barbariccia
                 console.Write(4 + worldOffsetX, 3 + worldOffsetY, "|^|", Color4.LightSteelBlue);
 
                 // UI
-                ui.Render();
+                ui.Render(player);
                 console.Write(screenY - 8, 63, timer.Elapsed.ToString(), Color4.Yellow);
                 
                 console.Write(screenY - 7, 63, ingameTime.ToString(), Color4.Yellow);
