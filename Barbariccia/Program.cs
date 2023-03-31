@@ -9,6 +9,46 @@ using System;
 
 namespace Barbariccia
 {
+    class Observer
+    {
+        void OnNotify(Subject subject) { }
+
+    }
+    class Subject
+    {
+        void Attach(Observer observer) { }
+        void Notify() {}
+    }
+
+
+    class GameTime // Governs in-game timer
+    {
+        private int _minutes;
+        private int _days;
+        private int _months;
+        private int _years;
+        private TimeSpan _oldTime;
+        private int _tickTime; // for private timers (eg, plants tracking their own growth)
+
+        GameTime()
+        {
+            _oldTime = TimeSpan.Zero;
+        }
+
+        public void Tick(TimeSpan t)
+        {
+            if (_oldTime != TimeSpan.Zero)  // if it's actually been set
+            {
+                _tickTime = (t - _oldTime).Milliseconds;
+            }
+        }
+
+        public void ApplyOffset (int minutes, int days, int months, int years)
+        {
+
+        }
+    }
+
     // THINGS SECTION
     enum Direction
     { Left, Right, Up, Down };
@@ -28,6 +68,11 @@ namespace Barbariccia
             c.Write(_posY + xOffset, _posX + yOffset, _char, _mainCol, _backCol);
         }
 
+        public void Update()
+        {
+
+        }
+
         public bool CanMove()
         {
             return !_blocking;
@@ -39,7 +84,20 @@ namespace Barbariccia
         }
     }
 
-    class Lawn : Things
+
+    // META-THINGS (inherited for functionality)
+
+    class Tillable : Things
+    {
+        public void Till(Things[,] t)
+        {
+            // TODO: add more like animation and delay when tilling by hand (that's probably going to need an event system)
+
+            t[_posX, _posY] = new TilledDirt(_posX, _posY);
+        }
+    }
+
+    class Lawn : Tillable
     {
         public Lawn(int x, int y)
         {
@@ -234,7 +292,7 @@ namespace Barbariccia
             return _direction;
         }
 
-        public string LookAt(Things[,] t)
+        public Things GetTarget(Things[,] t)
         {
             int x = 0;
             int y = 0;
@@ -260,10 +318,18 @@ namespace Barbariccia
             if (_posX + x < 0 || _posX + x >= t.GetLength(1)
             || _posY + y < 0 || _posY + y >= t.GetLength(0))
             {
-                return "That doesn't look like much of anything..";
+                return null;
             }
+            return t[_posY + y, _posX + x];
+        }
 
-            return t[_posY + y, _posX + x].LookAt();
+        public string LookAt(Things[,] t)
+        {
+            if(GetTarget(t) == null)
+            {
+                return "That doesn't look like much of anything...";
+            }
+            return GetTarget(t).LookAt();
         }
 
         public void Render(ConsoleWindow c, int xOffset, int yOffset)
@@ -549,6 +615,8 @@ namespace Barbariccia
         static void Main(string[] args)
         {
             Stopwatch timer = new Stopwatch();
+            Stopwatch retimer = new Stopwatch();
+            GameTime gameTime = new GameTime();
 
             int timeOffset = 540;
             int dayOffset = 0;
@@ -570,18 +638,27 @@ namespace Barbariccia
 
             bool running = true;
             timer.Start();
+            retimer.Start();
 
             int ingameTime = timeOffset;
+            int ingameTime2 = timeOffset;
             int ingameDays = dayOffset;
             bool newDay = true;
             string dayOfTheWeek = DayOfTheWeek(ingameDays);
 
+            float timeMultiplier = 3f;
+
+            gameTime.ApplyOffset(timeOffset, 0, 0, 0);
+
             while (!console.KeyPressed && console.WindowUpdate() && running)
             {
+                gameTime.Tick(timer.Elapsed);
+
                 // Process in-game time/date
                 ingameTime = (int)(timer.Elapsed.TotalSeconds + timeOffset) % 1140;
-                
-                if(ingameTime == 1139 && newDay)
+                ingameTime2 = (int)(retimer.Elapsed.TotalSeconds * timeMultiplier + timeOffset) % 1140;
+
+                if (ingameTime == 1139 && newDay)
                 {
                     ingameDays = ingameDays + 1;
                     newDay = false;
@@ -603,6 +680,18 @@ namespace Barbariccia
                     if (key == Key.L)
                     {
                         ui.UpdateInfo(player.LookAt(world));
+                    }
+
+                    if (key == Key.T)
+                    {
+                        if (player.GetTarget(world) != null && typeof(Tillable).IsInstanceOfType(player.GetTarget(world)))
+                        {
+                            ui.UpdateInfo("Tillable");
+                        }
+                        else
+                        {
+                            ui.UpdateInfo("Not Tillable");
+                        }
                     }
 
                     // Movement
@@ -647,6 +736,7 @@ namespace Barbariccia
                 console.Write(screenY - 8, 63, timer.Elapsed.ToString(), Color4.Yellow);
                 
                 console.Write(screenY - 7, 63, ingameTime.ToString(), Color4.Yellow);
+                console.Write(screenY - 7, 68, ingameTime2.ToString(), Color4.Yellow);
 
                 console.Write(screenY - 5, 63, dayOfTheWeek + " (" + ingameDays + ")", Color4.Yellow);
 
@@ -660,11 +750,19 @@ namespace Barbariccia
 
                 console.Write(screenY - 3, 63, timeDisplay.ToString(), Color4.Yellow);
 
+                string timeDisplay2 = string.Empty;
+                timeDisplay2 = (ingameTime2 / 60).ToString(@"00") + ":" + (ingameTime2 % 60).ToString(@"00");
+                if (ingameTime2 > 720)
+                    timeDisplay2 += " PM";
+                else
+                    timeDisplay2 += " AM";
+
+                console.Write(screenY - 2, 63, timeDisplay2.ToString(), Color4.Yellow);
 
                 int dayDate = ingameDays % 28 + 1;
                 int monthDate = ingameDays / 28 + 1;
                 string dateDisplay = dayDate.ToString(@"00") + " / " + monthDate.ToString(@"00");
-                console.Write(screenY - 2, 63, dateDisplay.ToString(), Color4.Yellow);
+                console.Write(screenY - 1, 63, dateDisplay.ToString(), Color4.Yellow);
             }
         }
     }
