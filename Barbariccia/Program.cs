@@ -25,27 +25,163 @@ namespace Barbariccia
     {
         private int _minutes;
         private int _days;
+        private int _daysTotal;
         private int _months;
         private int _years;
-        private TimeSpan _oldTime;
+        private TimeSpan _oldTickTspan;
         private int _tickTime; // for private timers (eg, plants tracking their own growth)
+        private int _runningTime;
+        private int _totalTime;
 
-        GameTime()
+        public GameTime()
         {
-            _oldTime = TimeSpan.Zero;
+            _oldTickTspan = TimeSpan.Zero;
         }
 
         public void Tick(TimeSpan t)
         {
-            if (_oldTime != TimeSpan.Zero)  // if it's actually been set
+            // Process tick time
+            int speed = 1;
+            if (_oldTickTspan != TimeSpan.Zero)  // if it's actually been set
             {
-                _tickTime = (t - _oldTime).Milliseconds;
+                _tickTime = (t - _oldTickTspan).Milliseconds;
             }
+            else
+            {
+                _tickTime = t.Milliseconds;
+            }
+            _runningTime = _runningTime + _tickTime * speed;
+            _totalTime = _totalTime + _tickTime * speed;
+            
+
+            // Convert to Minutes
+            _minutes = _runningTime / 1000;
+
+            // NEXT DAY CHECK
+            if (_minutes >= 1140)
+            {
+                _days = _days + 1;
+                _daysTotal = _daysTotal + 1;
+
+                _minutes = _minutes - 1140;
+                _runningTime = _runningTime - 1140000;
+
+                if (_days >= 28)
+                {
+                    _months = _months + 1;
+                    _days = _days - 28;
+                    if (_months >= 12)
+                    {
+                        _years = _years + 1;
+                        _months = _months - 12;
+                    }
+                }
+
+                // Check for Special Events probably
+                // Anything else that needs to happen Once Per Day
+            }
+            _oldTickTspan = t;
         }
 
         public void ApplyOffset (int minutes, int days, int months, int years)
         {
+            _minutes = minutes;
+            _runningTime = minutes * 1000;
+            _days = days;
+            _months = months;
+            _years = years;
+        }
 
+        // Get Strings
+        public string GetClock()
+        {
+            string timeDisplay = string.Empty;
+            timeDisplay = (_minutes / 60).ToString(@"00") + ":" + (_minutes % 60).ToString(@"00");
+            if (_minutes > 720)
+                timeDisplay += " PM";
+            else
+                timeDisplay += " AM";
+
+            return timeDisplay;
+        }
+        public string GetDayOfTheWeek()
+        {
+            switch (_days % 7)
+            {
+                case 0:
+                    return "Sunday";
+                    break;
+                case 1:
+                    return "Monday";
+                    break;
+                case 2:
+                    return "Tuesday";
+                    break;
+                case 3:
+                    return "Wednesday";
+                    break;
+                case 4:
+                    return "Thursday";
+                    break;
+                case 5:
+                    return "Friday";
+                    break;
+                case 6:
+                    return "Saturday";
+                    break;
+                default:
+                    break;
+            }
+            return "Error";
+        }
+        public string GetDate()
+        {
+            return GetDays() + "/" + GetMonths() + "/" + GetYears();
+        }
+        public string GetDays()
+        {
+            return (_days + 1).ToString(@"00");
+        }
+        public string GetMonths()
+        {
+            return (_months + 1).ToString(@"00");
+        }
+        public string GetYears()
+        {
+            return _years.ToString(@"00");
+        }
+        public string GetDebugTickTimeCounter()
+        {
+            return _tickTime.ToString();
+        }
+        public string GetDebugRunningTimeCounter()
+        {
+            return _runningTime.ToString();
+        }
+        public string GetDebugTotalTimeCounter()
+        {
+            return _totalTime.ToString();
+        }
+        // Get Numerical
+        public int GetNumericalMinutes()
+        {
+            return _minutes;
+        }
+        public int GetNumericalHours()
+        {
+            return _minutes / 60;
+        }
+        public int GetNumericalDays()
+        {
+            return _days;
+        }
+        public int GetNumericalMonths()
+        {
+            return _months;
+        }
+        public int GetNumericalYears()
+        {
+            return _years;
         }
     }
 
@@ -581,41 +717,9 @@ namespace Barbariccia
             return world;
         }
 
-        static string DayOfTheWeek(int day)
-        {
-            switch (day % 7)
-            {
-                case 0:
-                    return "Sunday";
-                    break;
-                case 1:
-                    return "Monday";
-                    break;
-                case 2:
-                    return "Tuesday";
-                    break;
-                case 3:
-                    return "Wednesday";
-                    break;
-                case 4:
-                    return "Thursday";
-                    break;
-                case 5:
-                    return "Friday";
-                    break;
-                case 6:
-                    return "Saturday";
-                    break;
-                default:
-                    break;
-            }
-            return "Error";
-        }
-
         static void Main(string[] args)
         {
             Stopwatch timer = new Stopwatch();
-            Stopwatch retimer = new Stopwatch();
             GameTime gameTime = new GameTime();
 
             int timeOffset = 540;
@@ -638,36 +742,12 @@ namespace Barbariccia
 
             bool running = true;
             timer.Start();
-            retimer.Start();
-
-            int ingameTime = timeOffset;
-            int ingameTime2 = timeOffset;
-            int ingameDays = dayOffset;
-            bool newDay = true;
-            string dayOfTheWeek = DayOfTheWeek(ingameDays);
-
-            float timeMultiplier = 3f;
 
             gameTime.ApplyOffset(timeOffset, 0, 0, 0);
 
             while (!console.KeyPressed && console.WindowUpdate() && running)
             {
                 gameTime.Tick(timer.Elapsed);
-
-                // Process in-game time/date
-                ingameTime = (int)(timer.Elapsed.TotalSeconds + timeOffset) % 1140;
-                ingameTime2 = (int)(retimer.Elapsed.TotalSeconds * timeMultiplier + timeOffset) % 1140;
-
-                if (ingameTime == 1139 && newDay)
-                {
-                    ingameDays = ingameDays + 1;
-                    newDay = false;
-                    dayOfTheWeek = DayOfTheWeek(ingameDays);
-                }
-                else if(ingameTime == 0 && !newDay)
-                {
-                    newDay = true;
-                }
 
                 // Get Input
                 if (console.KeyPressed)
@@ -733,36 +813,14 @@ namespace Barbariccia
 
                 // UI
                 ui.Render(player);
-                console.Write(screenY - 8, 63, timer.Elapsed.ToString(), Color4.Yellow);
-                
-                console.Write(screenY - 7, 63, ingameTime.ToString(), Color4.Yellow);
-                console.Write(screenY - 7, 68, ingameTime2.ToString(), Color4.Yellow);
 
-                console.Write(screenY - 5, 63, dayOfTheWeek + " (" + ingameDays + ")", Color4.Yellow);
+                console.Write(screenY - 9, 61, "D " + gameTime.GetDebugTickTimeCounter(), Color4.Yellow);
+                console.Write(screenY - 8, 61, "T " + gameTime.GetDebugTotalTimeCounter(), Color4.Yellow);  
+                console.Write(screenY - 7, 61, "R " + gameTime.GetDebugRunningTimeCounter(), Color4.Yellow);
 
-                // Format In-Game Time
-                string timeDisplay = string.Empty;
-                timeDisplay = (ingameTime / 60).ToString(@"00") + ":" + (ingameTime % 60).ToString(@"00");
-                if (ingameTime > 720)
-                    timeDisplay += " PM";
-                else
-                    timeDisplay += " AM";
-
-                console.Write(screenY - 3, 63, timeDisplay.ToString(), Color4.Yellow);
-
-                string timeDisplay2 = string.Empty;
-                timeDisplay2 = (ingameTime2 / 60).ToString(@"00") + ":" + (ingameTime2 % 60).ToString(@"00");
-                if (ingameTime2 > 720)
-                    timeDisplay2 += " PM";
-                else
-                    timeDisplay2 += " AM";
-
-                console.Write(screenY - 2, 63, timeDisplay2.ToString(), Color4.Yellow);
-
-                int dayDate = ingameDays % 28 + 1;
-                int monthDate = ingameDays / 28 + 1;
-                string dateDisplay = dayDate.ToString(@"00") + " / " + monthDate.ToString(@"00");
-                console.Write(screenY - 1, 63, dateDisplay.ToString(), Color4.Yellow);
+                console.Write(screenY - 5, 63, gameTime.GetDayOfTheWeek(), Color4.Yellow);
+                console.Write(screenY - 3, 63, gameTime.GetClock(), Color4.Yellow);
+                console.Write(screenY - 1, 63, gameTime.GetDate(), Color4.Yellow);
             }
         }
     }
